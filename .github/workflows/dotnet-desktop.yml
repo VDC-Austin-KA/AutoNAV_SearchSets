@@ -1,0 +1,53 @@
+name: Build Navisworks 2024 Plugin
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: windows-latest # Required for .NET Framework 4.8 and MSBuild
+
+    env:
+      Solution_Name: YourSolutionName.sln # Replace with your actual solution file name
+      Project_Path: YourProjectFolder/YourProject.csproj # Replace with your project path
+      Configuration: Release
+      Platform: x64
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    # 1. Install MSBuild (required for .NET Framework 4.8)
+    - name: Setup MSBuild.exe
+      uses: microsoft/setup-msbuild@v2
+
+    # 2. Setup NuGet
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v2
+
+    # 3. Restore Packages
+    - name: Restore NuGet Packages
+      run: nuget restore ${{ env.Solution_Name }}
+
+    # 4. Build the project for x64 Release
+    - name: Build Plugin
+      run: |
+        msbuild ${{ env.Solution_Name }} `
+        /p:Configuration=${{ env.Configuration }} `
+        /p:Platform=${{ env.Platform }} `
+        /p:TargetFrameworkVersion=v4.8 `
+        /m # Use multiple cores for speed
+
+    # 5. Verify the DLL exists and Upload as Artifact
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: AutoNAVSearchSets-Binary
+        path: |
+          bin/x64/Release/AutoNAVSearchSets.dll
+        if-no-files-found: error
